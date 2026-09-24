@@ -1,0 +1,5 @@
+export * from './search-adapter.ts'
+export * from './errors.ts'
+export { SearchDocument } from './model/search-document.ts'
+export { SearchHit } from './model/search-hit.ts'
+export { SearchRequest } from './model/search-request.ts'
