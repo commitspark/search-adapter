@@ -20,6 +20,112 @@ Values of a new commit are mostly identical to those of commits already indexed.
 computing embeddings) should therefore cache their per-value results keyed by a hash of the value (and, where
 applicable, of the embedding model), so that only new or changed values need to be processed.
 
+# Example
+
+Given the following schema and entry:
+
+```graphql
+directive @Entry on OBJECT
+directive @Searchable on OBJECT | FIELD_DEFINITION
+
+type Article @Entry {
+    id: ID!
+    title: String @Searchable
+    tags: [String!] @Searchable
+    blocks: [Block!]
+}
+
+union Block = TextBlock | ImageBlock
+
+type TextBlock @Searchable {
+    body: String
+}
+
+type ImageBlock {
+    url: String
+}
+```
+
+```yaml
+# commitspark/entries/first-launch.yaml
+metadata:
+  type: Article
+data:
+  title: First launch
+  tags:
+    - rocket
+    - orbit
+  blocks:
+    - TextBlock:
+        body: The rocket lifted off at dawn.
+    - ImageBlock:
+        url: https://example.com/launch.jpg
+```
+
+`getSearchableFieldValues()` returns one `SearchableFieldValue` per value. For values within a union, the field path
+contains the concrete union member type, matching the structure of the stored entry data:
+
+```typescript
+[
+  { entryId: 'first-launch', entryType: 'Article', fieldPath: 'title', value: 'First launch' },
+  { entryId: 'first-launch', entryType: 'Article', fieldPath: 'tags[0]', value: 'rocket' },
+  { entryId: 'first-launch', entryType: 'Article', fieldPath: 'tags[1]', value: 'orbit' },
+  {
+    entryId: 'first-launch',
+    entryType: 'Article',
+    fieldPath: 'blocks[0].TextBlock.body',
+    value: 'The rocket lifted off at dawn.',
+  },
+]
+```
+
+An adapter receives a `SearchRequest`, retrieves values only for commits it has not indexed yet, and returns
+`SearchHit` objects that refer back to the matching values by `entryId`, `entryType` and `fieldPath`. The following
+minimal adapter illustrates this with a case-insensitive substring match. A real implementation would rank hits by
+relevance, build an actual search index, and limit the number of indexes it keeps.
+
+```typescript
+import {
+  SearchableFieldValue,
+  SearchAdapter,
+  SearchHit,
+  SearchRequest,
+} from '@commitspark/search-adapter'
+
+export function createAdapter(): SearchAdapter {
+  const valuesByCommitHash = new Map<string, SearchableFieldValue[]>()
+
+  return {
+    async search(request: SearchRequest): Promise<SearchHit[]> {
+      let values = valuesByCommitHash.get(request.commitHash)
+      if (values === undefined) {
+        values = await request.getSearchableFieldValues()
+        valuesByCommitHash.set(request.commitHash, values)
+      }
+
+      const query = request.query.toLowerCase()
+      return values
+        .filter(
+          (value) =>
+            request.entryTypes === undefined ||
+            request.entryTypes.includes(value.entryType),
+        )
+        .filter((value) => value.value.toLowerCase().includes(query))
+        .slice(0, request.limit)
+        .map((value) => ({
+          entryId: value.entryId,
+          entryType: value.entryType,
+          fieldPath: value.fieldPath,
+          score: 1,
+          snippet: value.value.slice(0, 200),
+        }))
+    },
+  }
+}
+```
+
+A search for `rocket` then yields hits for `tags[0]` and `blocks[0].TextBlock.body` of entry `first-launch`.
+
 # Adapter Conventions
 
 The following conventions should be applied in adapter implementations:
