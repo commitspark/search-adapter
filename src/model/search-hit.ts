@@ -1,3 +1,6 @@
+/**
+ * Searchable field value matching a search query.
+ */
 export interface SearchHit {
   entryId: string
   entryType: string
@@ -7,7 +10,7 @@ export interface SearchHit {
    */
   score: number
   /**
-   * Excerpt of the document text that best represents why the document matched.
+   * Excerpt of the field value that best represents why the value matched.
    */
   snippet: string
 }
