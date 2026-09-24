@@ -78,11 +78,11 @@ contains the concrete union member type, matching the structure of the stored en
 ]
 ```
 
-An adapter receives a `SearchRequest` and returns `SearchHit` objects that refer back to the matching values by
-`entryId`, `entryType` and `fieldPath`. If an adapter keeps an index per commit, it should only call
-`getSearchableFieldValues()` for commits it has not indexed yet. The following minimal adapter illustrates this with a
-case-insensitive substring match. An actual implementation should rank hits by relevance, use a suitable search index,
-and limit the number of indexes it keeps.
+An adapter that receives a `SearchRequest` must return `SearchHit` objects that enable callers to resolve each hit to
+its entry and matching field value via `entryId`, `entryType` and `fieldPath`. If an adapter keeps an index per commit,
+it should only call `getSearchableFieldValues()` for commits it has not indexed yet. The following minimal adapter
+illustrates this with a case-insensitive substring match. An actual implementation should rank hits by relevance, use a
+suitable search index, and limit the number of indexes it keeps.
 
 ```typescript
 import {
