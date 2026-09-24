@@ -13,8 +13,7 @@ The Commitspark GraphQL API extracts the values of all fields marked with direct
 a commit and hands these to a search adapter as `SearchableFieldValue` objects, one per value (i.e. one per item for
 list fields). Each search request carries the hash of the commit to search in. As the values of a commit never change,
 adapters can build an index once per commit hash and reuse it for all subsequent requests. Values are only retrieved
-from the Commitspark GraphQL API when an adapter calls `getSearchableFieldValues()` of a request, i.e. when no index
-exists yet for the commit.
+from the Commitspark GraphQL API when an adapter calls `getSearchableFieldValues()` of a request.
 
 Values of a new commit are mostly identical to those of commits already indexed. Adapters with costly indexing (e.g.
 computing embeddings) should therefore cache their per-value results keyed by a hash of the value (and, where
@@ -79,10 +78,11 @@ contains the concrete union member type, matching the structure of the stored en
 ]
 ```
 
-An adapter receives a `SearchRequest`, retrieves values only for commits it has not indexed yet, and returns
-`SearchHit` objects that refer back to the matching values by `entryId`, `entryType` and `fieldPath`. The following
-minimal adapter illustrates this with a case-insensitive substring match. A real implementation would rank hits by
-relevance, build an actual search index, and limit the number of indexes it keeps.
+An adapter receives a `SearchRequest` and returns `SearchHit` objects that refer back to the matching values by
+`entryId`, `entryType` and `fieldPath`. If an adapter keeps an index per commit, it should only call
+`getSearchableFieldValues()` for commits it has not indexed yet. The following minimal adapter illustrates this with a
+case-insensitive substring match. An actual implementation should rank hits by relevance, use a suitable search index,
+and limit the number of indexes it keeps.
 
 ```typescript
 import {
