@@ -13,7 +13,9 @@ The Commitspark GraphQL API extracts the values of all fields marked with direct
 a commit and hands these to a search adapter as `SearchableFieldValue` objects, one per value (i.e. one per item for
 list fields). Each search request carries the hash of the commit to search in. As the values of a commit never change,
 adapters can build an index once per commit hash and reuse it for all subsequent requests. Values are only retrieved
-from the Commitspark GraphQL API when an adapter calls `getSearchableFieldValues()` of a request.
+from the Commitspark GraphQL API when an adapter calls `getSearchableFieldValues()` of a request. The rules for marking
+fields as searchable are documented in the
+[Commitspark GraphQL API documentation](https://github.com/commitspark/graphql-api#marking-fields-as-searchable).
 
 Values of a new commit are mostly identical to those of commits already indexed. Adapters with costly indexing (e.g.
 computing embeddings) should therefore cache their per-value results keyed by a hash of the value (and, where
